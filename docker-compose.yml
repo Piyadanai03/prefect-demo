@@ -20,12 +20,6 @@ services:
     container_name: prefect-worker
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
-      SQLSERVER_HOST: ${SQLSERVER_HOST}
-      SQLSERVER_PORT: ${SQLSERVER_PORT}
-      SQLSERVER_DATABASE: ${SQLSERVER_DATABASE}
-      SQLSERVER_USER: ${SQLSERVER_USER}
-      SQLSERVER_PASSWORD: ${SQLSERVER_PASSWORD}
-      LOAD_DATABASE_CONNECTION_URL: ${LOAD_DATABASE_CONNECTION_URL}
     volumes:
       - ./database_connection:/app/database_connection
       - ./flows:/app/flows
