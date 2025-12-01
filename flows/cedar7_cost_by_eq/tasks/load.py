@@ -4,9 +4,9 @@ from typing import Any, Dict, Optional
 
 import pandas as pd
 from prefect import get_run_logger, task
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 
-from database_connection import get_postgres_engine
+from flows.db import get_postgres_engine_localhost
 
 
 @task(name="cedar7-load-cost-by-eq")
@@ -34,12 +34,18 @@ def load_cost_by_eq_data(
             "qualified_table": qualified_table,
         }
 
-    engine = get_postgres_engine()
+    engine = get_postgres_engine_localhost()
 
     with engine.begin() as conn:
         if truncate_before_load:
-            logger.info("Truncating %s", qualified_table)
-            conn.execute(text(f"TRUNCATE TABLE {qualified_table}"))
+            inspector = inspect(conn)
+            table_exists = inspector.has_table(destination_table, schema=destination_schema)
+            
+            if table_exists:
+                logger.info("Truncating %s", qualified_table)
+                conn.execute(text(f"TRUNCATE TABLE {qualified_table}"))
+            else:
+                logger.info("Table %s does not exist yet. Skipping truncate.", qualified_table)
 
         df.to_sql(
             destination_table,

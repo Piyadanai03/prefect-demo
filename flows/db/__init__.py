@@ -15,6 +15,7 @@ def get_postgres_engine_localhost(block_name: str = "postgres-localhost") -> Eng
     """Load Postgres engine from Prefect Block."""
     connector = SqlAlchemyConnector.load(block_name)
     return connector.get_engine(pool_pre_ping=True)
+
 __all__ = [
     "get_sqlserver_engine",
     "get_postgres_engine",

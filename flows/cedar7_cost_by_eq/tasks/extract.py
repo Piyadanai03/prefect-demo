@@ -4,7 +4,10 @@ import pandas as pd
 from prefect import get_run_logger, task
 from sqlalchemy import text
 
-from database_connection import get_sqlserver_engine
+from flows.db import get_sqlserver_engine
+from flows.observability import get_tracer
+
+tracer = get_tracer(__name__)
 
 _COST_BY_EQ_SOURCE_QUERY = """
 SELECT
@@ -37,13 +40,21 @@ GROUP BY e.EQNO, e.EQName, e.EQCode, wo.WODATE, wo.SiteNo, wt.WOTypeGroupNo
 
 @task(name="cedar7-extract-cost-by-eq")
 def extract_cost_by_eq_data() -> pd.DataFrame:
-    """Read source data from SQL Server using the embedded aggregation query."""
+    """Read source data from SQL Server with tracing."""
     logger = get_run_logger()
-    logger.info("Connecting to SQL Server …")
-
-    engine = get_sqlserver_engine()
-    with engine.connect() as conn:
-        df = pd.read_sql(text(_COST_BY_EQ_SOURCE_QUERY), conn)
-
-    logger.info("Extracted %s rows", len(df))
+    
+    with tracer.start_as_current_span("extract-sql-server") as span:
+        logger.info("Connecting to SQL Server …")
+        span.set_attribute("db.system", "mssql")
+        span.set_attribute("db.operation", "SELECT")
+        
+        engine = get_sqlserver_engine()
+        
+        with tracer.start_as_current_span("execute-query"):
+            with engine.connect() as conn:
+                df = pd.read_sql(text(_COST_BY_EQ_SOURCE_QUERY), conn)
+        
+        span.set_attribute("db.rows_returned", len(df))
+        logger.info("Extracted %s rows", len(df))
+        
     return df

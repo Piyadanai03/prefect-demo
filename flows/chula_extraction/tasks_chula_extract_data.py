@@ -6,7 +6,7 @@ from os.path import dirname, abspath
 
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 
-from database_connection import get_sqlserver_engine
+from flows.db import get_sqlserver_engine
 
 
 @task(name="chula-extract-table")
